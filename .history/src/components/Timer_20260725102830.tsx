@@ -36,7 +36,7 @@ export default function Timer({ pomodoro }: TimerProps) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "48 px"
+                    fontSize: "88 px"
                 }}
             >
                 {now ? formatClock(now) : "--:-- --"}

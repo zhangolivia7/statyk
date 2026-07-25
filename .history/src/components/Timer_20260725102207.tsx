@@ -26,7 +26,7 @@ export default function Timer({ pomodoro }: TimerProps) {
     return (
         <div style={{ position: "relative", width: 396, height: 112 }}>
             <svg width="396" height="112" viewBox="0 0 396 112" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="1" width="393.581" height="109.095" rx="9" fill="#0C0C0C" stroke="#F3EDE5" strokeWidth="2" />
+                <rect x="1" y="1" width="393.581" height="109.095" rx="9" fill="#0C0C0C" stroke="#F3EDE5" stroke-width="2" />
             </svg>
             <p
                 style={{

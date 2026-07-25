@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import TV from "@/components/TV";
 import Timer from "@/components/Timer"
 import Knob from "./Knob"
@@ -11,8 +8,6 @@ interface RoomProps {
 
 // Create the component function
 export default function Room({ channel }: RoomProps) {
-    const [tuningAngle, setTuningAngle] = useState(0);
-
     return (
         <div style={{ position: "relative", width: 844, height: 598 }}>
             <TV color="#0C0C0C" />
@@ -23,7 +18,7 @@ export default function Room({ channel }: RoomProps) {
                     top: "81%",
                 }}
             >
-                <Knob angle={tuningAngle} onChange={setTuningAngle} />
+                <Knob angle="10"/>
             </div>
             <div
                 style={{
