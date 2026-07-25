@@ -1,52 +1,26 @@
-/* NOTE: swap this for `next/font/google`'s Fira_Code once you have normal
-   network access in dev — self-hosting via next/font avoids a render-blocking
-   request and is the better long-term choice. This @import is a placeholder
-   that works everywhere in the meantime. */
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 :root {
-  /* statyk design tokens — pulled directly from Figma */
-  --color-blackish: #0c0c0c;
-  --color-cream: #f3ede5;
-  --color-dark-gray: #747474;
-  --color-light-gray: #c7c5bc;
-  --color-window-blue: #061e39;
-
-  --background: var(--color-blackish);
-  --foreground: var(--color-cream);
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-blackish: var(--color-blackish);
-  --color-cream: var(--color-cream);
-  --color-dark-gray: var(--color-dark-gray);
-  --color-light-gray: var(--color-light-gray);
-  --color-window-blue: var(--color-window-blue);
-  --font-mono: "Fira Code", ui-monospace, monospace;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Fira Code", ui-monospace, monospace;
-  overflow: hidden;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* Respect reduced-motion preferences across the whole app */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
