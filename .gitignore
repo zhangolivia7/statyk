@@ -2,3 +2,7 @@ node_modules
 .next
 *.tsbuildinfo
 .env*
+
+# editor/tooling local artifacts
+.history/
+.claude/settings.local.json
