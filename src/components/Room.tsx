@@ -80,17 +80,31 @@ export default function Room({ channel }: RoomProps) {
         activeChannel?.kind === "radio" ? (radioStreamUrl ?? undefined) : activeChannel?.audioSrc;
 
     const skyColor = theme === "dark" ? "#061E39" : "#AEDEFF";
+    const boundsColor = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
 
     return (
         <div
             style={{
-                position: "relative",
-                zIndex: 0,
-                width: 1440,
-                height: 1024,
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 backgroundColor: theme === "dark" ? "#0C0C0C" : "#F3EDE5",
             }}
         >
+            <div
+                style={{
+                    position: "relative",
+                    zIndex: 0,
+                    width: 1440,
+                    height: 1024,
+                    flexShrink: 0,
+                    backgroundColor: theme === "dark" ? "#0C0C0C" : "#F3EDE5",
+                    outline: `2px solid ${boundsColor}`,
+                    outlineOffset: "-1px",
+                }}
+            >
             {/* room */}
             <div style={{ position: "absolute", left: 0, top: 0, zIndex: -1 }}>
                 <svg width="1440" height="702" viewBox="0 0 1440 702" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -343,6 +357,7 @@ export default function Room({ channel }: RoomProps) {
             </button>
 
             <Notes open={notesOpen} onClose={() => setNotesOpen(false)} theme={theme} />
-        </div >
+            </div>
+        </div>
     );
 }

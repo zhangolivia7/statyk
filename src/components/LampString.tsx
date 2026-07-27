@@ -140,6 +140,23 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
         return () => cancelAnimationFrame(frameId);
     }, [onPull]);
 
+    // safety net: if a pointerup/pointercancel is ever missed by the svg's own
+    // handler (e.g. the button is released outside the window, or the OS
+    // cancels the gesture mid-drag), draggingRef would otherwise stay stuck
+    // true and every later mouse move — no click needed — would keep dragging
+    // the handle. Listening on window guarantees the drag always ends.
+    useEffect(() => {
+        const endDrag = () => {
+            draggingRef.current = false;
+        };
+        window.addEventListener("pointerup", endDrag);
+        window.addEventListener("pointercancel", endDrag);
+        return () => {
+            window.removeEventListener("pointerup", endDrag);
+            window.removeEventListener("pointercancel", endDrag);
+        };
+    }, []);
+
     const clientToLocal = (clientX: number, clientY: number) => {
         const el = svgRef.current;
         if (!el) return { x: ANCHOR.x, y: ANCHOR.y };
