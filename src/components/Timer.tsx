@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from 'react-dom';
 
 interface TimerProps {
     pomodoro: boolean,
@@ -41,6 +42,11 @@ export default function Timer({ pomodoro }: TimerProps) {
             >
                 {now ? formatClock(now) : "--:-- --"}
             </p>
+
+            {createPortal(
+                <p>This child is placed in the document body.</p>,
+                document.body
+            )}
         </div>
     )
 }

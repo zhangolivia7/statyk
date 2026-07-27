@@ -44,6 +44,9 @@ const CHANNELS: ChannelDef[] = [
     { position: 5 / 6, video: "/channels/cafe.mp4", kind: "file", audioSrc: "/ambience/cafe.mp3" },
 ];
 
+const focusDurations = ["10m", "25m", "50m", "75m"];
+const breakDurations = ["5m", "10m", "15m"];
+
 function findActiveChannel(tuningChannel: number) {
     return CHANNELS.find((c) => Math.abs(tuningChannel - c.position) < CHANNEL_SNAP_TOLERANCE);
 }
@@ -58,6 +61,10 @@ export default function Room({ channel }: RoomProps) {
     const tuningChannel = (tuningAngle - KNOB_MIN) / (KNOB_MAX - KNOB_MIN);
     const activeChannel = findActiveChannel(tuningChannel);
 
+    const [pomodoroPopup, setPomodoroPopup] = useState(false);
+    const [selectedDuration, setSelectedDuration] = useState("25m");
+    const [selectedBreak, setSelectedBreak] = useState("5m");
+
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume, enabled: audioEnabled && !activeChannel });
 
@@ -68,6 +75,7 @@ export default function Room({ channel }: RoomProps) {
 
     return (
         <div style={{ position: "relative", width: 1440, height: 1024 }}>
+            {/* room */}
             <div style={{ position: "absolute", left: 0, top: 0, zIndex: -1 }}>
                 <svg width="1440" height="702" viewBox="0 0 1440 702" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M271 512L-42 701" stroke="#747474" strokeWidth="2" />
@@ -95,8 +103,8 @@ export default function Room({ channel }: RoomProps) {
                     <rect x="922" y="126.881" width="49" height="177.119" fill="#0C0C0C" stroke="#747474" />
                 </svg>
             </div>
-            {/* TV group positioned to match the Figma "TV" frame (x=299, y=324)
-                within the same 1440-wide coordinate space as the room background */}
+
+            {/* tv */}
             <div style={{ position: "absolute", left: 299, top: 324, width: 844, height: 598 }}>
                 <TV color="#0C0C0C">
                     {activeChannel ? (
@@ -134,13 +142,154 @@ export default function Room({ channel }: RoomProps) {
                         height: "18.2%",
                     }}
                 >
-                    <Timer pomodoro />
+                    <button onClick={() => setPomodoroPopup(true)}>
+                        <Timer
+                            pomodoro
+                        />
+                    </button>
+
+                    {pomodoroPopup && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                            <div style={{
+                                backgroundColor: "#0C0C0C",
+                                border: "2px solid #747474",
+                                borderRadius: "10px",
+                                width: "526px",
+                                height: "489px",
+                                padding: "25px 55px"
+                            }}>
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "right"
+                                }}>
+                                    <button
+                                        onClick={() => setPomodoroPopup(false)}>
+                                        X
+                                    </button>
+                                </div>
+                                <div style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "30px"
+                                }}>
+                                    <h1 style={{
+                                        width: "159px",
+                                        height: "31px",
+                                        left: "533px",
+                                        top: "317px",
+                                        fontSize: "24px",
+                                        color: "#F3EDE5",
+                                    }}>
+                                        SET SESSION
+                                    </h1>
+
+                                    {/* focus */}
+                                    <div>
+                                        <h2 className="mb-5">
+                                            FOCUS
+                                        </h2>
+                                        <div className="flex gap-3">
+                                            {focusDurations.map((duration) => (
+                                                <button
+                                                    key={duration}
+                                                    onClick={() => setSelectedDuration(duration)}
+                                                    className="relative flex h-[52px] w-[84px] items-center justify-center"
+                                                >
+                                                    {selectedDuration === duration && (
+                                                        <svg
+                                                            className="absolute inset-0"
+                                                            width="84"
+                                                            height="52"
+                                                            viewBox="0 0 84 52"
+                                                        >
+                                                            <rect
+                                                                x="0.5"
+                                                                y="0.5"
+                                                                width="83"
+                                                                height="51"
+                                                                rx="9.5"
+                                                                fill="#747474"
+                                                                fillOpacity="0.3"
+                                                                stroke="#747474"
+                                                            />
+                                                        </svg>
+                                                    )}
+
+                                                    <span
+                                                        className={`relative z-10 text-lg transition-colors ${selectedDuration === duration
+                                                            ? "text-white font-medium"
+                                                            : "text-[#747474] hover:text-white"
+                                                            }`}
+                                                    >
+                                                        {duration}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* break */}
+                                    <div>
+                                        <h2 className="mb-5">
+                                            BREAK
+                                        </h2>
+                                        <div className="flex gap-3">
+                                            {breakDurations.map((duration) => (
+                                                <button
+                                                    key={duration}
+                                                    onClick={() => setSelectedBreak(duration)}
+                                                    className="relative flex h-[52px] w-[84px] items-center justify-center"
+                                                >
+                                                    {selectedBreak === duration && (
+                                                        <svg
+                                                            className="absolute inset-0"
+                                                            width="84"
+                                                            height="52"
+                                                            viewBox="0 0 84 52"
+                                                        >
+                                                            <rect
+                                                                x="0.5"
+                                                                y="0.5"
+                                                                width="83"
+                                                                height="51"
+                                                                rx="9.5"
+                                                                fill="#747474"
+                                                                fillOpacity="0.3"
+                                                                stroke="#747474"
+                                                            />
+                                                        </svg>
+                                                    )}
+
+                                                    <span
+                                                        className={`relative z-10 text-lg transition-colors ${selectedBreak === duration
+                                                            ? "text-white font-medium"
+                                                            : "text-[#747474] hover:text-white"
+                                                            }`}
+                                                    >
+                                                        {duration}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-center mt-6">
+                                        <button style={{
+                                            width: "407px",
+                                            height: "67px",
+                                            left: "534px",
+                                            top: "647px",
+                                            border: "1px solid #747474",
+                                            borderRadius: "10px"
+                                        }}>
+                                            Start
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
-            {/* positioned to match the Figma "Volume Slider" frame (x=1372, y=152) */}
-            <div style={{ position: "absolute", left: 1372, top: 152 }}>
-                <Volume value={volume} onChange={setVolume} />
-            </div>
-        </div>
+        </div >
     );
 }
