@@ -64,6 +64,10 @@ export default function Room({ channel }: RoomProps) {
     const [pomodoroPopup, setPomodoroPopup] = useState(false);
     const [selectedDuration, setSelectedDuration] = useState("25m");
     const [selectedBreak, setSelectedBreak] = useState("5m");
+    const [pomodoroActive, setPomodoroActive] = useState(false);
+    const selectedDurationMinutes = Number(
+        selectedDuration.replace("m", "")
+    );
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume, enabled: audioEnabled && !activeChannel });
@@ -144,7 +148,8 @@ export default function Room({ channel }: RoomProps) {
                 >
                     <button onClick={() => setPomodoroPopup(true)}>
                         <Timer
-                            pomodoro
+                            pomodoroActive={pomodoroActive}
+                            durationMinutes={selectedDurationMinutes}
                         />
                     </button>
 
@@ -273,7 +278,12 @@ export default function Room({ channel }: RoomProps) {
                                         </div>
                                     </div>
                                     <div className="flex justify-center mt-6">
-                                        <button style={{
+                                        <button 
+                                        onClick={() => {
+                                            setPomodoroActive(true);
+                                            setPomodoroPopup(false);
+                                        }}
+                                        style={{
                                             width: "407px",
                                             height: "67px",
                                             left: "534px",

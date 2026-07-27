@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from 'react-dom';
 
 interface TimerProps {
-    pomodoro: boolean,
+    pomodoroActive: boolean,
+    durationMinutes: number
 }
 
 function formatClock(date: Date) {
@@ -12,17 +12,55 @@ function formatClock(date: Date) {
     const hours = hours24 % 12 === 0 ? 12 : hours24 % 12;
     const minutes = date.getMinutes().toString().padStart(2, "0");
     const period = hours24 >= 12 ? "PM" : "AM";
+
     return `${hours}:${minutes} ${period}`;
 }
 
-export default function Timer({ pomodoro }: TimerProps) {
-    const [now, setNow] = useState<Date | null>(null);
+function formatCountdown(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
 
+export default function Timer({ pomodoroActive, durationMinutes }: TimerProps) {
+    const [now, setNow] = useState<Date | null>(null);
+    const [secondsRemaining, setSecondsRemaining] = useState(
+        durationMinutes * 60
+    );
+
+    // clock
     useEffect(() => {
         setNow(new Date());
+
         const id = setInterval(() => setNow(new Date()), 1000);
+
         return () => clearInterval(id);
     }, []);
+
+    // pomodoro countdown
+    useEffect(() => {
+        if(!pomodoroActive) return;
+
+        const id = setInterval(() => {
+            setSecondsRemaining((previousSeconds) => {
+                if(previousSeconds <= 1) {
+                    clearInterval(id);
+                    return 0;
+                }
+
+                return previousSeconds - 1;
+            })
+        }, 1000)
+        return () => clearInterval(id)
+    }, [pomodoroActive, durationMinutes])
+
+    // reset countdown for new pomodoro
+    useEffect(() => {
+        if(pomodoroActive) {
+            setSecondsRemaining(durationMinutes * 60)
+        }
+    }, [pomodoroActive, durationMinutes])
 
     return (
         <div style={{ position: "relative", width: 396, height: 112 }}>
@@ -37,16 +75,14 @@ export default function Timer({ pomodoro }: TimerProps) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "48 px"
+                    fontSize: "48px"
                 }}
             >
-                {now ? formatClock(now) : "--:-- --"}
+                {pomodoroActive
+                    ? formatCountdown(secondsRemaining)
+                    : now ? formatClock(now) : "--:-- --"
+                }
             </p>
-
-            {createPortal(
-                <p>This child is placed in the document body.</p>,
-                document.body
-            )}
         </div>
     )
 }
