@@ -9,6 +9,7 @@ import ChannelDisplay from "./ChannelDisplay";
 import { useStaticAudio } from "@/lib/useStaticAudio";
 import { useRadioStation } from "@/lib/useRadioStation";
 import Volume from "@/components/Volume"
+import Notes from "@/components/Notes"
 
 interface RoomProps {
     channel: string;
@@ -65,6 +66,8 @@ export default function Room({ channel }: RoomProps) {
     const [selectedDuration, setSelectedDuration] = useState("25m");
     const [selectedBreak, setSelectedBreak] = useState("5m");
     const [pomodoroActive, setPomodoroActive] = useState(false);
+
+    const [notesOpen, setNotesOpen] = useState(false);
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume, enabled: audioEnabled && !activeChannel });
@@ -304,6 +307,15 @@ export default function Room({ channel }: RoomProps) {
             <div style={{ position: "absolute", left: 1372, top: 152 }}>
                 <Volume value={volume} onChange={setVolume} />
             </div>
+
+            <button
+                onClick={() => setNotesOpen(true)}
+                style={{ position: "absolute", left: 40, bottom: 40, width: 60 }}
+            >
+                <img src="/Note.png" alt="Notes" style={{ width: "100%", height: "auto" }} />
+            </button>
+
+            <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
         </div >
     );
 }
