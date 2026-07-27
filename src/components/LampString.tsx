@@ -27,6 +27,16 @@ const DRAG_SMOOTHING = 0.35;
 // how far past resting length you have to pull before it "clicks"
 const PULL_THRESHOLD = 110;
 
+// hard stop on how far down the handle can be dragged, so it can't be
+// yanked all the way to the bottom of the screen
+const MAX_PULL_DISTANCE = 190;
+
+// floor for the constraint solver's distance calc — without this, two
+// segments nearly overlapping (easy to trigger with a fast sideways drag)
+// divide by a near-zero distance and the correction blows up, freezing
+// the rope at whatever position it last managed to render
+const MIN_SEGMENT_DIST = 2;
+
 interface Point {
     x: number;
     y: number;
@@ -87,7 +97,7 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
                     const b = points[i + 1];
                     const dx = b.x - a.x;
                     const dy = b.y - a.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+                    const dist = Math.max(Math.sqrt(dx * dx + dy * dy), MIN_SEGMENT_DIST);
                     const diff = (dist - SEGMENT_LENGTH) / dist;
                     const moveX = dx * 0.5 * diff;
                     const moveY = dy * 0.5 * diff;
@@ -140,10 +150,17 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
         };
     };
 
+    // caps how far down the pointer can drag the handle — sideways is
+    // left alone, only the pull-down depth is limited
+    const clampPullTarget = (local: { x: number; y: number }) => ({
+        x: local.x,
+        y: Math.min(local.y, ANCHOR.y + REST_LENGTH + MAX_PULL_DISTANCE),
+    });
+
     const handlePointerDown = (e: React.PointerEvent<SVGCircleElement>) => {
         draggingRef.current = true;
         triggeredRef.current = false;
-        dragTargetRef.current = clientToLocal(e.clientX, e.clientY);
+        dragTargetRef.current = clampPullTarget(clientToLocal(e.clientX, e.clientY));
         e.currentTarget.setPointerCapture(e.pointerId);
     };
 
@@ -151,7 +168,7 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
         if (!draggingRef.current) return;
         // just record where the pointer is — the animation loop eases the
         // handle toward this target instead of snapping to it
-        dragTargetRef.current = clientToLocal(e.clientX, e.clientY);
+        dragTargetRef.current = clampPullTarget(clientToLocal(e.clientX, e.clientY));
     };
 
     const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
