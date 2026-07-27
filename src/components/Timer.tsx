@@ -85,10 +85,18 @@ export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, o
 
     const housingFill = theme === "dark" ? "#0C0C0C" : "#F3EDE5";
     const housingStroke = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
+    const shadowColor = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
 
     return (
         <div style={{ position: "relative", width: 396, height: 112 }}>
-            <svg width="396" height="112" viewBox="0 0 396 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+                width="396"
+                height="112"
+                viewBox="0 0 396 112"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ filter: `drop-shadow(0px 4px 5px ${shadowColor})` }}
+            >
                 <rect x="1" y="1" width="393.581" height="109.095" rx="9" fill={housingFill} stroke={housingStroke} strokeWidth="2" />
             </svg>
             <p

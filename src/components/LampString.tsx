@@ -195,7 +195,10 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
                 cy={ANCHOR.y + REST_LENGTH}
                 r={HANDLE_RADIUS}
                 fill={theme === "dark" ? "#F3EDE5" : "#0C0C0C"}
-                style={{ cursor: "grab" }}
+                style={{
+                    cursor: "grab",
+                    filter: `drop-shadow(0px 4px 5px ${(theme === "dark" ? "#F3EDE5" : "#0C0C0C")})`,
+                }}
                 onPointerDown={handlePointerDown}
             />
         </svg>

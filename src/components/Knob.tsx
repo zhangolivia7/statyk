@@ -71,6 +71,7 @@ export default function Knob({ angle, onChange, min = -135, max = 135, theme = "
     };
 
     const knobColor = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
+    const shadowColor = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
 
     return (
         <svg
@@ -83,7 +84,7 @@ export default function Knob({ angle, onChange, min = -135, max = 135, theme = "
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            style={{ touchAction: "none", cursor: "grab" }}
+            style={{ touchAction: "none", cursor: "grab", filter: `drop-shadow(0px 4px 5px ${shadowColor})` }}
         >
             <circle cx="36.5" cy="36.5" r="35.5" stroke={knobColor} strokeWidth="2" />
             <g style={{ transform: `rotate(${angle}deg)`, transformOrigin: "36.5px 36.5px" }}>
