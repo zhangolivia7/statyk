@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 
 interface TimerProps {
     pomodoroActive: boolean,
-    durationMinutes: number
+    durationMinutes: number,
+    breakMinutes: number,
+    onComplete: () => void,
 }
+
+const TOTAL_FOCUS_SESSIONS = 3;
 
 function formatClock(date: Date) {
     const hours24 = date.getHours();
@@ -23,8 +27,10 @@ function formatCountdown(totalSeconds: number) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export default function Timer({ pomodoroActive, durationMinutes }: TimerProps) {
+export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, onComplete }: TimerProps) {
     const [now, setNow] = useState<Date | null>(null);
+    const [phase, setPhase] = useState<"focus" | "break">("focus")
+    const [focusCount, setFocusCount] = useState(0);
     const [secondsRemaining, setSecondsRemaining] = useState(
         durationMinutes * 60
     );
@@ -38,29 +44,43 @@ export default function Timer({ pomodoroActive, durationMinutes }: TimerProps) {
         return () => clearInterval(id);
     }, []);
 
-    // pomodoro countdown
     useEffect(() => {
-        if(!pomodoroActive) return;
+        if (!pomodoroActive) return;
+
+        let phase: "focus" | "break" = "focus";
+        let focusCount = 0;
+        let secondsLeft = durationMinutes * 60;
+
+        setPhase(phase);
+        setFocusCount(focusCount);
+        setSecondsRemaining(secondsLeft);
 
         const id = setInterval(() => {
-            setSecondsRemaining((previousSeconds) => {
-                if(previousSeconds <= 1) {
-                    clearInterval(id);
-                    return 0;
+            secondsLeft -= 1;
+
+            if (secondsLeft <= 0) {
+                if (phase === "focus") {
+                    focusCount += 1;
+                    if (focusCount >= TOTAL_FOCUS_SESSIONS) {
+                        clearInterval(id);
+                        onComplete();
+                        return;
+                    }
+                    phase = "break";
+                    secondsLeft = breakMinutes * 60;
+                } else {
+                    phase = "focus";
+                    secondsLeft = durationMinutes * 60;
                 }
+                setPhase(phase);
+                setFocusCount(focusCount);
+            }
 
-                return previousSeconds - 1;
-            })
-        }, 1000)
-        return () => clearInterval(id)
-    }, [pomodoroActive, durationMinutes])
+            setSecondsRemaining(secondsLeft);
+        }, 1000);
 
-    // reset countdown for new pomodoro
-    useEffect(() => {
-        if(pomodoroActive) {
-            setSecondsRemaining(durationMinutes * 60)
-        }
-    }, [pomodoroActive, durationMinutes])
+        return () => clearInterval(id);
+    }, [pomodoroActive, durationMinutes, breakMinutes, onComplete]);
 
     return (
         <div style={{ position: "relative", width: 396, height: 112 }}>
@@ -75,7 +95,8 @@ export default function Timer({ pomodoroActive, durationMinutes }: TimerProps) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "48px"
+                    fontSize: "48px",
+                    color: pomodoroActive ? (phase === "focus" ? "#22C55E" : "#3B82F6") : undefined,
                 }}
             >
                 {pomodoroActive

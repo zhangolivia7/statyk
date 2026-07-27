@@ -65,9 +65,6 @@ export default function Room({ channel }: RoomProps) {
     const [selectedDuration, setSelectedDuration] = useState("25m");
     const [selectedBreak, setSelectedBreak] = useState("5m");
     const [pomodoroActive, setPomodoroActive] = useState(false);
-    const selectedDurationMinutes = Number(
-        selectedDuration.replace("m", "")
-    );
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume, enabled: audioEnabled && !activeChannel });
@@ -149,7 +146,9 @@ export default function Room({ channel }: RoomProps) {
                     <button onClick={() => setPomodoroPopup(true)}>
                         <Timer
                             pomodoroActive={pomodoroActive}
-                            durationMinutes={selectedDurationMinutes}
+                            durationMinutes={Number(selectedDuration.replace("m", ""))}
+                            breakMinutes={Number(selectedBreak.replace("m", ""))}
+                            onComplete={() => setPomodoroActive(false)}
                         />
                     </button>
 
@@ -299,6 +298,11 @@ export default function Room({ channel }: RoomProps) {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* positioned to match the Figma "Volume Slider" frame (x=1372, y=152) */}
+            <div style={{ position: "absolute", left: 1372, top: 152 }}>
+                <Volume value={volume} onChange={setVolume} />
             </div>
         </div >
     );
