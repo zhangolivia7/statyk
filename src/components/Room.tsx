@@ -10,6 +10,7 @@ import { useStaticAudio } from "@/lib/useStaticAudio";
 import { useRadioStation } from "@/lib/useRadioStation";
 import Volume from "@/components/Volume"
 import Notes from "@/components/Notes"
+import LampString from "@/components/LampString"
 
 interface RoomProps {
     channel: string;
@@ -68,6 +69,7 @@ export default function Room({ channel }: RoomProps) {
     const [pomodoroActive, setPomodoroActive] = useState(false);
 
     const [notesOpen, setNotesOpen] = useState(false);
+    const [theme, setTheme] = useState<"dark" | "light">("dark");
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume, enabled: audioEnabled && !activeChannel });
@@ -77,21 +79,31 @@ export default function Room({ channel }: RoomProps) {
     const activeAudioSrc =
         activeChannel?.kind === "radio" ? (radioStreamUrl ?? undefined) : activeChannel?.audioSrc;
 
+    const skyColor = theme === "dark" ? "#061E39" : "#AEDEFF";
+
     return (
-        <div style={{ position: "relative", width: 1440, height: 1024 }}>
+        <div
+            style={{
+                position: "relative",
+                zIndex: 0,
+                width: 1440,
+                height: 1024,
+                backgroundColor: theme === "dark" ? "#0C0C0C" : "#F3EDE5",
+            }}
+        >
             {/* room */}
             <div style={{ position: "absolute", left: 0, top: 0, zIndex: -1 }}>
                 <svg width="1440" height="702" viewBox="0 0 1440 702" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M271 512L-42 701" stroke="#747474" strokeWidth="2" />
                     <path d="M271 512H1440" stroke="#747474" strokeWidth="2" />
                     <path d="M271 512L271 -1.09076e-05" stroke="#747474" strokeWidth="2" />
-                    <path d="M-189 130.26L271 64.7604L271 303.761L-189 533.26L-189 130.26Z" fill="#061E39" stroke="#747474" strokeWidth="2" />
+                    <path d="M-189 130.26L271 64.7604L271 303.761L-189 533.26L-189 130.26Z" fill={skyColor} stroke="#747474" strokeWidth="2" />
                     <path d="M222 136L271 123V303.5L222 328V136Z" fill="#0C0C0C" stroke="#747474" />
                     <path d="M-3 255L27 245V426L-3 441V255Z" fill="#0C0C0C" stroke="#747474" />
                     <path d="M94 132.439L142 125V368L94 393V132.439Z" fill="#0C0C0C" stroke="#747474" />
                     <path d="M27 99.439L94 90V392.5L27 425.5V99.439Z" fill="#0C0C0C" stroke="#747474" />
                     <path d="M142 164.5L222 147V328L142 368V164.5Z" fill="#0C0C0C" stroke="#747474" />
-                    <rect x="271" y="65" width="728" height="239" fill="#061E39" stroke="#747474" strokeWidth="2" />
+                    <rect x="271" y="65" width="728" height="239" fill={skyColor} stroke="#747474" strokeWidth="2" />
                     <rect x="494" y="197.55" width="56" height="106.45" fill="#0C0C0C" stroke="#747474" />
                     <rect x="638" y="184.132" width="62" height="119.868" fill="#0C0C0C" stroke="#747474" />
                     <rect x="271" y="108" width="49" height="196" fill="#0C0C0C" stroke="#747474" />
@@ -110,7 +122,7 @@ export default function Room({ channel }: RoomProps) {
 
             {/* tv */}
             <div style={{ position: "absolute", left: 299, top: 324, width: 844, height: 598 }}>
-                <TV color="#0C0C0C">
+                <TV color="#0C0C0C" theme={theme}>
                     {activeChannel ? (
                         <ChannelDisplay
                             video={activeChannel.video}
@@ -131,6 +143,7 @@ export default function Room({ channel }: RoomProps) {
                 >
                     <Knob
                         angle={tuningAngle}
+                        theme={theme}
                         onChange={(next) => {
                             setAudioEnabled(true);
                             setTuningAngle(next);
@@ -152,13 +165,14 @@ export default function Room({ channel }: RoomProps) {
                             durationMinutes={Number(selectedDuration.replace("m", ""))}
                             breakMinutes={Number(selectedBreak.replace("m", ""))}
                             onComplete={() => setPomodoroActive(false)}
+                            theme={theme}
                         />
                     </button>
 
                     {pomodoroPopup && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                             <div style={{
-                                backgroundColor: "#0C0C0C",
+                                backgroundColor: theme === "dark" ? "#0C0C0C" : "#F3EDE5",
                                 border: "2px solid #747474",
                                 borderRadius: "10px",
                                 width: "526px",
@@ -170,7 +184,8 @@ export default function Room({ channel }: RoomProps) {
                                     justifyContent: "right"
                                 }}>
                                     <button
-                                        onClick={() => setPomodoroPopup(false)}>
+                                        onClick={() => setPomodoroPopup(false)}
+                                        style={{ color: theme === "dark" ? "#F3EDE5" : "#0C0C0C" }}>
                                         X
                                     </button>
                                 </div>
@@ -185,14 +200,14 @@ export default function Room({ channel }: RoomProps) {
                                         left: "533px",
                                         top: "317px",
                                         fontSize: "24px",
-                                        color: "#F3EDE5",
+                                        color: theme === "dark" ? "#F3EDE5" : "#0C0C0C",
                                     }}>
                                         SET SESSION
                                     </h1>
 
                                     {/* focus */}
                                     <div>
-                                        <h2 className="mb-5">
+                                        <h2 className="mb-5" style={{ color: "#747474" }}>
                                             FOCUS
                                         </h2>
                                         <div className="flex gap-3">
@@ -223,10 +238,13 @@ export default function Room({ channel }: RoomProps) {
                                                     )}
 
                                                     <span
-                                                        className={`relative z-10 text-lg transition-colors ${selectedDuration === duration
-                                                            ? "text-white font-medium"
-                                                            : "text-[#747474] hover:text-white"
-                                                            }`}
+                                                        className="relative z-10 text-lg transition-colors"
+                                                        style={{
+                                                            color: selectedDuration === duration
+                                                                ? (theme === "dark" ? "#F3EDE5" : "#0C0C0C")
+                                                                : "#747474",
+                                                            fontWeight: selectedDuration === duration ? 500 : 400,
+                                                        }}
                                                     >
                                                         {duration}
                                                     </span>
@@ -237,7 +255,7 @@ export default function Room({ channel }: RoomProps) {
 
                                     {/* break */}
                                     <div>
-                                        <h2 className="mb-5">
+                                        <h2 className="mb-5" style={{ color: "#747474" }}>
                                             BREAK
                                         </h2>
                                         <div className="flex gap-3">
@@ -268,10 +286,13 @@ export default function Room({ channel }: RoomProps) {
                                                     )}
 
                                                     <span
-                                                        className={`relative z-10 text-lg transition-colors ${selectedBreak === duration
-                                                            ? "text-white font-medium"
-                                                            : "text-[#747474] hover:text-white"
-                                                            }`}
+                                                        className="relative z-10 text-lg transition-colors"
+                                                        style={{
+                                                            color: selectedBreak === duration
+                                                                ? (theme === "dark" ? "#F3EDE5" : "#0C0C0C")
+                                                                : "#747474",
+                                                            fontWeight: selectedBreak === duration ? 500 : 400,
+                                                        }}
                                                     >
                                                         {duration}
                                                     </span>
@@ -280,7 +301,7 @@ export default function Room({ channel }: RoomProps) {
                                         </div>
                                     </div>
                                     <div className="flex justify-center mt-6">
-                                        <button 
+                                        <button
                                         onClick={() => {
                                             setPomodoroActive(true);
                                             setPomodoroPopup(false);
@@ -291,7 +312,8 @@ export default function Room({ channel }: RoomProps) {
                                             left: "534px",
                                             top: "647px",
                                             border: "1px solid #747474",
-                                            borderRadius: "10px"
+                                            borderRadius: "10px",
+                                            color: theme === "dark" ? "#F3EDE5" : "#0C0C0C",
                                         }}>
                                             Start
                                         </button>
@@ -305,7 +327,12 @@ export default function Room({ channel }: RoomProps) {
 
             {/* positioned to match the Figma "Volume Slider" frame (x=1372, y=152) */}
             <div style={{ position: "absolute", left: 1372, top: 152 }}>
-                <Volume value={volume} onChange={setVolume} />
+                <Volume value={volume} onChange={setVolume} theme={theme} />
+            </div>
+
+            {/* positioned to match the Figma "Lamp string" frame (x=1168, y=7) */}
+            <div style={{ position: "absolute", left: 1168, top: 7 }}>
+                <LampString theme={theme} onPull={() => setTheme((t) => (t === "dark" ? "light" : "dark"))} />
             </div>
 
             <button
@@ -315,7 +342,7 @@ export default function Room({ channel }: RoomProps) {
                 <img src="/Note.png" alt="Notes" style={{ width: "100%", height: "auto" }} />
             </button>
 
-            <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
+            <Notes open={notesOpen} onClose={() => setNotesOpen(false)} theme={theme} />
         </div >
     );
 }

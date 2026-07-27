@@ -7,6 +7,7 @@ interface KnobProps {
     onChange?: (angle: number) => void;
     min?: number;
     max?: number;
+    theme?: "dark" | "light";
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -22,7 +23,7 @@ function normalizeDelta(delta: number) {
     return d;
 }
 
-export default function Knob({ angle, onChange, min = -135, max = 135 }: KnobProps) {
+export default function Knob({ angle, onChange, min = -135, max = 135, theme = "dark" }: KnobProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const draggingRef = useRef(false);
     const lastPointerAngleRef = useRef(0);
@@ -69,6 +70,8 @@ export default function Knob({ angle, onChange, min = -135, max = 135 }: KnobPro
         e.currentTarget.releasePointerCapture(e.pointerId);
     };
 
+    const knobColor = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
+
     return (
         <svg
             ref={svgRef}
@@ -82,10 +85,10 @@ export default function Knob({ angle, onChange, min = -135, max = 135 }: KnobPro
             onPointerUp={handlePointerUp}
             style={{ touchAction: "none", cursor: "grab" }}
         >
-            <circle cx="36.5" cy="36.5" r="35.5" stroke="#F3EDE5" strokeWidth="2" />
+            <circle cx="36.5" cy="36.5" r="35.5" stroke={knobColor} strokeWidth="2" />
             <g style={{ transform: `rotate(${angle}deg)`, transformOrigin: "36.5px 36.5px" }}>
-                <path d="M37 5L37 20" stroke="#F3EDE5" strokeWidth="2" />
-                <circle cx="36.5" cy="36.5" r="12.5" fill="#F3EDE5" />
+                <path d="M37 5L37 20" stroke={knobColor} strokeWidth="2" />
+                <circle cx="36.5" cy="36.5" r="12.5" fill={knobColor} />
             </g>
         </svg>
     );

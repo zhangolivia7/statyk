@@ -5,6 +5,7 @@ import { useRef } from "react";
 interface VolumeProps {
     value: number; // 0..1
     onChange?: (value: number) => void;
+    theme?: "dark" | "light";
 }
 
 const TRACK_TOP = 1;
@@ -19,7 +20,7 @@ function clamp(value: number, min: number, max: number) {
     return Math.min(max, Math.max(min, value));
 }
 
-export default function Volume({ value, onChange }: VolumeProps) {
+export default function Volume({ value, onChange, theme = "dark" }: VolumeProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const draggingRef = useRef(false);
 
@@ -53,6 +54,11 @@ export default function Volume({ value, onChange }: VolumeProps) {
     const thumbTop = THUMB_TOP_AT_MIN - value * (THUMB_TOP_AT_MIN - THUMB_TOP_AT_MAX);
     const thumbCenterY = thumbTop + THUMB_HEIGHT / 2;
 
+    const trackFill = theme === "dark" ? "#0C0C0C" : "#F3EDE5";
+    const trackStroke = theme === "dark" ? "#C7C5BC" : "#747474";
+    const filledFill = theme === "dark" ? "#747474" : "#C7C5BC";
+    const accent = theme === "dark" ? "#C7C5BC" : "#747474";
+
     return (
         <svg
             ref={svgRef}
@@ -67,7 +73,7 @@ export default function Volume({ value, onChange }: VolumeProps) {
             style={{ touchAction: "none", cursor: "grab" }}
         >
             {/* bar */}
-            <rect x="6" y="1" width="34" height="746" rx="17" fill="#0C0C0C" stroke="#C7C5BC" strokeWidth="2" />
+            <rect x="6" y="1" width="34" height="746" rx="17" fill={trackFill} stroke={trackStroke} strokeWidth="2" />
             {/* filled bar — grows up from the bottom to meet the thumb */}
             <rect
                 x="6"
@@ -75,13 +81,13 @@ export default function Volume({ value, onChange }: VolumeProps) {
                 width="34"
                 height={Math.max(0, TRACK_BOTTOM - thumbCenterY)}
                 rx="17"
-                fill="#747474"
-                stroke="#C7C5BC"
+                fill={filledFill}
+                stroke={trackStroke}
                 strokeWidth="2"
             />
             {/* slider */}
-            <rect x="1" y={thumbTop} width="44" height={THUMB_HEIGHT} rx="19" fill="#0C0C0C" stroke="#C7C5BC" strokeWidth="2" />
-            <circle cx="22.5" cy={thumbCenterY} r="11.5" fill="#C7C5BC" />
+            <rect x="1" y={thumbTop} width="44" height={THUMB_HEIGHT} rx="19" fill={trackFill} stroke={trackStroke} strokeWidth="2" />
+            <circle cx="22.5" cy={thumbCenterY} r="11.5" fill={accent} />
         </svg>
     );
 }

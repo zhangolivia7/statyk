@@ -7,6 +7,7 @@ interface TimerProps {
     durationMinutes: number,
     breakMinutes: number,
     onComplete: () => void,
+    theme?: "dark" | "light",
 }
 
 const TOTAL_FOCUS_SESSIONS = 3;
@@ -27,7 +28,7 @@ function formatCountdown(totalSeconds: number) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, onComplete }: TimerProps) {
+export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, onComplete, theme = "dark" }: TimerProps) {
     const [now, setNow] = useState<Date | null>(null);
     const [phase, setPhase] = useState<"focus" | "break">("focus")
     const [focusCount, setFocusCount] = useState(0);
@@ -82,10 +83,13 @@ export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, o
         return () => clearInterval(id);
     }, [pomodoroActive, durationMinutes, breakMinutes, onComplete]);
 
+    const housingFill = theme === "dark" ? "#0C0C0C" : "#F3EDE5";
+    const housingStroke = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
+
     return (
         <div style={{ position: "relative", width: 396, height: 112 }}>
             <svg width="396" height="112" viewBox="0 0 396 112" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="1" width="393.581" height="109.095" rx="9" fill="#0C0C0C" stroke="#F3EDE5" strokeWidth="2" />
+                <rect x="1" y="1" width="393.581" height="109.095" rx="9" fill={housingFill} stroke={housingStroke} strokeWidth="2" />
             </svg>
             <p
                 style={{
@@ -96,7 +100,7 @@ export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, o
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: "48px",
-                    color: pomodoroActive ? (phase === "focus" ? "#22C55E" : "#3B82F6") : undefined,
+                    color: pomodoroActive ? (phase === "focus" ? "#22C55E" : "#3B82F6") : housingStroke,
                 }}
             >
                 {pomodoroActive
