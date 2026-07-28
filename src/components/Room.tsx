@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import TV from "@/components/TV";
 import Timer from "@/components/Timer"
 import Knob from "./Knob"
@@ -11,6 +11,7 @@ import { useRadioStation } from "@/lib/useRadioStation";
 import Volume from "@/components/Volume"
 import Notes from "@/components/Notes"
 import LampString from "@/components/LampString"
+import { startFocusSession, completeFocusSession } from "@/lib/focusSessionLogger"
 
 interface RoomProps {
     channel: string;
@@ -75,7 +76,16 @@ export default function Room({ channel }: RoomProps) {
     const [notesOpen, setNotesOpen] = useState(false);
     const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-    const handlePomodoroComplete = useCallback(() => setPomodoroActive(false), []);
+    // holds the in-progress Supabase row id so the (identity-stable)
+    // complete callback can mark it done without needing to be recreated
+    // whenever a new session starts
+    const activeSessionIdRef = useRef<string | null>(null);
+
+    const handlePomodoroComplete = useCallback(() => {
+        completeFocusSession(activeSessionIdRef.current);
+        activeSessionIdRef.current = null;
+        setPomodoroActive(false);
+    }, []);
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume: volume * STATIC_VOLUME_SCALE, enabled: audioEnabled && !activeChannel });
@@ -322,6 +332,12 @@ export default function Room({ channel }: RoomProps) {
                                         onClick={() => {
                                             setPomodoroActive(true);
                                             setPomodoroPopup(false);
+                                            startFocusSession(
+                                                Number(selectedDuration.replace("m", "")),
+                                                activeChannel?.video ?? null
+                                            ).then((id) => {
+                                                activeSessionIdRef.current = id;
+                                            });
                                         }}
                                         style={{
                                             width: "407px",
