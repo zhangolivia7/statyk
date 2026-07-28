@@ -25,6 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${lcd14.variable} antialiased`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
