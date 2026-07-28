@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import TV from "@/components/TV";
 import Timer from "@/components/Timer"
 import Knob from "./Knob"
@@ -74,6 +74,8 @@ export default function Room({ channel }: RoomProps) {
 
     const [notesOpen, setNotesOpen] = useState(false);
     const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+    const handlePomodoroComplete = useCallback(() => setPomodoroActive(false), []);
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume: volume * STATIC_VOLUME_SCALE, enabled: audioEnabled && !activeChannel });
@@ -182,7 +184,7 @@ export default function Room({ channel }: RoomProps) {
                             pomodoroActive={pomodoroActive}
                             durationMinutes={Number(selectedDuration.replace("m", ""))}
                             breakMinutes={Number(selectedBreak.replace("m", ""))}
-                            onComplete={() => setPomodoroActive(false)}
+                            onComplete={handlePomodoroComplete}
                             theme={theme}
                         />
                     </button>
