@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { playPomodoroSound } from "@/lib/playPomodoroSound";
 
 interface TimerProps {
     pomodoroActive: boolean,
@@ -45,42 +46,63 @@ export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, o
         return () => clearInterval(id);
     }, []);
 
+    // driven by wall-clock timestamps rather than a decrementing counter, so
+    // background-tab timer throttling can't make the countdown drift — each
+    // tick (and each tab focus event) just recomputes remaining time from
+    // Date.now(), and the while loop below catches up on any phase changes
+    // that were missed while the tab was hidden
     useEffect(() => {
         if (!pomodoroActive) return;
 
         let phase: "focus" | "break" = "focus";
         let focusCount = 0;
-        let secondsLeft = durationMinutes * 60;
+        let phaseEnd = Date.now() + durationMinutes * 60 * 1000;
+        let stopped = false;
 
         setPhase(phase);
         setFocusCount(focusCount);
-        setSecondsRemaining(secondsLeft);
+        setSecondsRemaining(durationMinutes * 60);
+        playPomodoroSound("focus");
 
-        const id = setInterval(() => {
-            secondsLeft -= 1;
+        const tick = () => {
+            if (stopped) return;
+            const now = Date.now();
 
-            if (secondsLeft <= 0) {
+            while (now >= phaseEnd) {
                 if (phase === "focus") {
                     focusCount += 1;
                     if (focusCount >= TOTAL_FOCUS_SESSIONS) {
-                        clearInterval(id);
+                        stopped = true;
+                        setPhase(phase);
+                        setFocusCount(focusCount);
+                        setSecondsRemaining(0);
+                        playPomodoroSound("complete");
                         onComplete();
                         return;
                     }
                     phase = "break";
-                    secondsLeft = breakMinutes * 60;
+                    phaseEnd += breakMinutes * 60 * 1000;
+                    playPomodoroSound("break");
                 } else {
                     phase = "focus";
-                    secondsLeft = durationMinutes * 60;
+                    phaseEnd += durationMinutes * 60 * 1000;
+                    playPomodoroSound("focus");
                 }
-                setPhase(phase);
-                setFocusCount(focusCount);
             }
 
-            setSecondsRemaining(secondsLeft);
-        }, 1000);
+            setPhase(phase);
+            setFocusCount(focusCount);
+            setSecondsRemaining(Math.max(0, Math.ceil((phaseEnd - now) / 1000)));
+        };
 
-        return () => clearInterval(id);
+        const id = setInterval(tick, 1000);
+        document.addEventListener("visibilitychange", tick);
+
+        return () => {
+            stopped = true;
+            clearInterval(id);
+            document.removeEventListener("visibilitychange", tick);
+        };
     }, [pomodoroActive, durationMinutes, breakMinutes, onComplete]);
 
     const housingFill = theme === "dark" ? "#0C0C0C" : "#F3EDE5";
