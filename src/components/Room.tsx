@@ -348,7 +348,7 @@ export default function Room({ channel }: RoomProps) {
 
             <button
                 onClick={() => setNotesOpen(true)}
-                style={{ position: "absolute", left: 40, bottom: 40, width: 60, zIndex: 100 }}
+                style={{ position: "absolute", left: 40, bottom: 40, width: 60, zIndex: 30 }}
             >
                 <img src="/Note.png" alt="Notes" style={{ width: "100%", height: "auto" }} />
             </button>

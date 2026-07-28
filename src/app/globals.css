@@ -24,3 +24,55 @@ body {
   color: var(--foreground);
   font-family: var(--font-lcd14), Arial, Helvetica, sans-serif;
 }
+
+.notes-editor {
+  cursor: text;
+}
+
+.notes-editor:empty:before {
+  content: attr(data-placeholder);
+  color: #747474;
+  pointer-events: none;
+}
+
+.notes-editor b,
+.notes-editor strong {
+  font-weight: 700;
+}
+
+.notes-editor ul,
+.notes-editor ol {
+  margin: 0;
+  padding-left: 1.3em;
+}
+
+.notes-editor ul:not(.checklist) {
+  list-style-type: disc;
+}
+
+.notes-editor ol {
+  list-style-type: decimal;
+}
+
+.notes-editor ul.checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.notes-editor ul.checklist li {
+  position: relative;
+  padding-left: 26px;
+}
+
+.notes-editor ul.checklist li input[type="checkbox"] {
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  accent-color: currentColor;
+  cursor: pointer;
+}
+
+.notes-editor ul.checklist li.checked {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
