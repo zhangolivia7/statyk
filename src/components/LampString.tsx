@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { playClickSound } from "@/lib/playClickSound";
+import { playLampSound } from "@/lib/playLampSound";
 
 interface LampStringProps {
     onPull: () => void;
@@ -117,7 +117,7 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
                 const pulledPast = handle.y - (ANCHOR.y + REST_LENGTH);
                 if (pulledPast > PULL_THRESHOLD) {
                     triggeredRef.current = true;
-                    playClickSound();
+                    playLampSound(theme === "dark");
                     onPull();
                 }
             }
@@ -138,7 +138,7 @@ export default function LampString({ onPull, theme = "dark" }: LampStringProps) 
 
         frameId = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frameId);
-    }, [onPull]);
+    }, [onPull, theme]);
 
     // safety net: if a pointerup/pointercancel is ever missed by the svg's own
     // handler (e.g. the button is released outside the window, or the OS

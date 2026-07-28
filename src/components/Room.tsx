@@ -38,6 +38,10 @@ type ChannelDef =
 
 const CHANNEL_SNAP_TOLERANCE = 0.03;
 
+// the raw noise buffer reads much louder than actual channel audio at the
+// same volume-slider position, so scale it down to match
+const STATIC_VOLUME_SCALE = 0.05;
+
 const CHANNELS: ChannelDef[] = [
     { position: 1 / 6, video: "/channels/lofi.mp4", kind: "radio", radioTag: "lofi" },
     { position: 2 / 6, video: "/channels/jazz.mp4", kind: "radio", radioTag: "jazz" },
@@ -55,7 +59,7 @@ function findActiveChannel(tuningChannel: number) {
 
 // Create the component function
 export default function Room({ channel }: RoomProps) {
-    const [tuningAngle, setTuningAngle] = useState(0);
+    const [tuningAngle, setTuningAngle] = useState(KNOB_MIN);
     const [audioEnabled, setAudioEnabled] = useState(false);
     const [volume, setVolume] = useState(0.2);
 
@@ -72,7 +76,7 @@ export default function Room({ channel }: RoomProps) {
     const [theme, setTheme] = useState<"dark" | "light">("dark");
 
     // static noise only plays when we're not sitting on a channel
-    useStaticAudio({ volume, enabled: audioEnabled && !activeChannel });
+    useStaticAudio({ volume: volume * STATIC_VOLUME_SCALE, enabled: audioEnabled && !activeChannel });
 
     // resolves to a live stream URL only when the active channel is a radio one
     const radioStreamUrl = useRadioStation(activeChannel?.kind === "radio" ? activeChannel.radioTag : null);
@@ -356,7 +360,7 @@ export default function Room({ channel }: RoomProps) {
             <Notes open={notesOpen} onClose={() => setNotesOpen(false)} theme={theme} />
 
             <img
-                src="/statyk logo.png"
+                src={theme === "dark" ? "/statyk logo.png" : "/statyk logo light.png"}
                 alt="statyk"
                 style={{ position: "absolute", left: 15, top: 15, height: 28, width: "auto", zIndex: 5 }}
             />
