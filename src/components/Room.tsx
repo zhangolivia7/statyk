@@ -209,10 +209,7 @@ export default function Room({ channel }: RoomProps) {
                                     gap: "30px"
                                 }}>
                                     <h1 style={{
-                                        width: "159px",
-                                        height: "31px",
-                                        left: "533px",
-                                        top: "317px",
+                                        whiteSpace: "nowrap",
                                         fontSize: "24px",
                                         color: theme === "dark" ? "#F3EDE5" : "#0C0C0C",
                                     }}>
@@ -357,6 +354,12 @@ export default function Room({ channel }: RoomProps) {
             </button>
 
             <Notes open={notesOpen} onClose={() => setNotesOpen(false)} theme={theme} />
+
+            <img
+                src="/statyk logo.png"
+                alt="statyk"
+                style={{ position: "absolute", left: 15, top: 15, height: 28, width: "auto", zIndex: 100 }}
+            />
             </div>
         </div>
     );
