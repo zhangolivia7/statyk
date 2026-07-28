@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Handjet } from "next/font/google";
+
+const handjet = Handjet({ weight: "300", subsets: ["latin"] });
 
 interface NotesProps {
     open: boolean;
@@ -44,6 +47,7 @@ export default function Notes({ open, onClose, theme = "dark" }: NotesProps) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="jot something down..."
+                className={handjet.className}
                 style={{
                     flex: 1,
                     backgroundColor: "transparent",
@@ -52,7 +56,6 @@ export default function Notes({ open, onClose, theme = "dark" }: NotesProps) {
                     padding: "16px",
                     color: fg,
                     fontSize: "16px",
-                    fontFamily: "inherit",
                     resize: "none",
                     outline: "none",
                 }}
