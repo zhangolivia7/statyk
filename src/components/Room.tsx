@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import TV from "@/components/TV";
 import Timer from "@/components/Timer"
 import Knob from "./Knob"
@@ -11,10 +12,13 @@ import { useRadioStation } from "@/lib/useRadioStation";
 import Volume from "@/components/Volume"
 import Notes from "@/components/Notes"
 import LampString from "@/components/LampString"
+import Share from "@/components/Share"
+import { supabase } from "@/lib/supabaseClient"
 import { startFocusSession, completeFocusSession } from "@/lib/focusSessionLogger"
 
 interface RoomProps {
     channel: string;
+    roomCode: string;
 }
 
 const KNOB_MIN = -135;
@@ -59,7 +63,7 @@ function findActiveChannel(tuningChannel: number) {
 }
 
 // Create the component function
-export default function Room({ channel }: RoomProps) {
+export default function Room({ channel, roomCode }: RoomProps) {
     const [tuningAngle, setTuningAngle] = useState(KNOB_MIN);
     const [audioEnabled, setAudioEnabled] = useState(false);
     const [volume, setVolume] = useState(0.2);
@@ -72,8 +76,13 @@ export default function Room({ channel }: RoomProps) {
     const [selectedDuration, setSelectedDuration] = useState("25m");
     const [selectedBreak, setSelectedBreak] = useState("5m");
     const [pomodoroActive, setPomodoroActive] = useState(false);
+    // wall-clock start time for the current/last session — lets Timer (and a
+    // peer joining mid-session) compute the true current phase, not just a
+    // fresh countdown from the full duration
+    const [pomodoroStartedAt, setPomodoroStartedAt] = useState(() => Date.now());
 
     const [notesOpen, setNotesOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
     const [theme, setTheme] = useState<"dark" | "light">("dark");
 
     // holds the in-progress Supabase row id so the (identity-stable)
@@ -86,6 +95,137 @@ export default function Room({ channel }: RoomProps) {
         activeSessionIdRef.current = null;
         setPomodoroActive(false);
     }, []);
+
+    const channelRef = useRef<RealtimeChannel | null>(null);
+
+    // identifies this browser tab when asking peers for the room's current
+    // state on join, so only the response addressed to us gets applied
+    const clientIdRef = useRef<string | null>(null);
+    if (clientIdRef.current === null) clientIdRef.current = crypto.randomUUID();
+
+    // mirrors the latest channel/theme/pomodoro state so the state_request
+    // responder below (registered once per roomCode) always answers with
+    // the current values instead of whatever they were when the effect
+    // first subscribed
+    const tuningAngleRef = useRef(tuningAngle);
+    tuningAngleRef.current = tuningAngle;
+    const themeRef = useRef(theme);
+    themeRef.current = theme;
+    const pomodoroActiveRef = useRef(pomodoroActive);
+    pomodoroActiveRef.current = pomodoroActive;
+    const selectedDurationRef = useRef(selectedDuration);
+    selectedDurationRef.current = selectedDuration;
+    const selectedBreakRef = useRef(selectedBreak);
+    selectedBreakRef.current = selectedBreak;
+    const pomodoroStartedAtRef = useRef(pomodoroStartedAt);
+    pomodoroStartedAtRef.current = pomodoroStartedAt;
+
+    // caps knob broadcasts to ~12/sec while dragging (Supabase's free tier
+    // rate-limits realtime messages project-wide), while still guaranteeing
+    // the latest angle — including the exact resting position on release —
+    // reaches peers via the trailing flush, instead of silently dropping it
+    const KNOB_BROADCAST_INTERVAL_MS = 80;
+    const lastKnobSendRef = useRef(0);
+    const knobFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const broadcastKnobAngle = (angle: number) => {
+        if (knobFlushTimeoutRef.current) {
+            clearTimeout(knobFlushTimeoutRef.current);
+            knobFlushTimeoutRef.current = null;
+        }
+
+        const send = (value: number) => {
+            lastKnobSendRef.current = Date.now();
+            channelRef.current?.send({ type: "broadcast", event: "knob", payload: { angle: value } });
+        };
+
+        const elapsed = Date.now() - lastKnobSendRef.current;
+        if (elapsed >= KNOB_BROADCAST_INTERVAL_MS) {
+            send(angle);
+        } else {
+            knobFlushTimeoutRef.current = setTimeout(() => send(angle), KNOB_BROADCAST_INTERVAL_MS - elapsed);
+        }
+    };
+
+    // starts a focus session both locally (setting state + logging to
+    // Supabase) and when triggered by a peer's broadcast — kept as a ref so
+    // the broadcast listener below can always call the latest version
+    // without needing to tear down and resubscribe the realtime channel
+    // whenever activeChannel changes
+    const beginPomodoroRef = useRef((duration: string, breakDuration: string, startedAt: number) => {});
+    beginPomodoroRef.current = (duration, breakDuration, startedAt) => {
+        setSelectedDuration(duration);
+        setSelectedBreak(breakDuration);
+        setPomodoroStartedAt(startedAt);
+        setPomodoroActive(true);
+        setPomodoroPopup(false);
+        startFocusSession(Number(duration.replace("m", "")), activeChannel?.video ?? null).then((id) => {
+            activeSessionIdRef.current = id;
+        });
+    };
+
+    // peer-to-peer sync for the shared parts of a statyk (channel, theme,
+    // pomodoro start) — last write wins, no host/authoritative client.
+    // volume/audio-enabled/notes stay local since those are personal, and
+    // browsers gate audio playback behind each tab's own user gesture anyway
+    useEffect(() => {
+        const channel = supabase
+            .channel(`room:${roomCode}`)
+            .on("broadcast", { event: "knob" }, ({ payload }) => {
+                setAudioEnabled(true);
+                setTuningAngle(payload.angle);
+            })
+            .on("broadcast", { event: "theme" }, ({ payload }) => {
+                setTheme(payload.theme);
+            })
+            .on("broadcast", { event: "pomodoro_start" }, ({ payload }) => {
+                beginPomodoroRef.current(payload.duration, payload.breakDuration, payload.startedAt);
+            })
+            // lets a client that just joined catch up to whatever channel/theme/
+            // pomodoro session peers already have going, instead of sitting at
+            // the defaults until someone happens to touch the knob or lamp again
+            .on("broadcast", { event: "state_request" }, ({ payload }) => {
+                channel.send({
+                    type: "broadcast",
+                    event: "state_response",
+                    payload: {
+                        requesterId: payload.requesterId,
+                        angle: tuningAngleRef.current,
+                        theme: themeRef.current,
+                        pomodoroActive: pomodoroActiveRef.current,
+                        duration: selectedDurationRef.current,
+                        breakDuration: selectedBreakRef.current,
+                        startedAt: pomodoroStartedAtRef.current,
+                    },
+                });
+            })
+            .on("broadcast", { event: "state_response" }, ({ payload }) => {
+                if (payload.requesterId !== clientIdRef.current) return;
+                setAudioEnabled(true);
+                setTuningAngle(payload.angle);
+                setTheme(payload.theme);
+                if (payload.pomodoroActive) {
+                    beginPomodoroRef.current(payload.duration, payload.breakDuration, payload.startedAt);
+                }
+            })
+            .subscribe((status) => {
+                if (status === "SUBSCRIBED") {
+                    channel.send({
+                        type: "broadcast",
+                        event: "state_request",
+                        payload: { requesterId: clientIdRef.current },
+                    });
+                }
+            });
+
+        channelRef.current = channel;
+
+        return () => {
+            supabase.removeChannel(channel);
+            channelRef.current = null;
+            if (knobFlushTimeoutRef.current) clearTimeout(knobFlushTimeoutRef.current);
+        };
+    }, [roomCode]);
 
     // static noise only plays when we're not sitting on a channel
     useStaticAudio({ volume: volume * STATIC_VOLUME_SCALE, enabled: audioEnabled && !activeChannel });
@@ -177,6 +317,7 @@ export default function Room({ channel }: RoomProps) {
                         onChange={(next) => {
                             setAudioEnabled(true);
                             setTuningAngle(next);
+                            broadcastKnobAngle(next);
                         }}
                     />
                 </div>
@@ -194,6 +335,7 @@ export default function Room({ channel }: RoomProps) {
                             pomodoroActive={pomodoroActive}
                             durationMinutes={Number(selectedDuration.replace("m", ""))}
                             breakMinutes={Number(selectedBreak.replace("m", ""))}
+                            startedAt={pomodoroStartedAt}
                             onComplete={handlePomodoroComplete}
                             theme={theme}
                         />
@@ -330,13 +472,15 @@ export default function Room({ channel }: RoomProps) {
                                     <div className="flex justify-center mt-6">
                                         <button
                                         onClick={() => {
-                                            setPomodoroActive(true);
-                                            setPomodoroPopup(false);
-                                            startFocusSession(
-                                                Number(selectedDuration.replace("m", "")),
-                                                activeChannel?.video ?? null
-                                            ).then((id) => {
-                                                activeSessionIdRef.current = id;
+                                            // computed once and reused for both the local start and the
+                                            // broadcast, so every peer (including this one) times the
+                                            // session from the exact same instant
+                                            const startedAt = Date.now();
+                                            beginPomodoroRef.current(selectedDuration, selectedBreak, startedAt);
+                                            channelRef.current?.send({
+                                                type: "broadcast",
+                                                event: "pomodoro_start",
+                                                payload: { duration: selectedDuration, breakDuration: selectedBreak, startedAt },
                                             });
                                         }}
                                         style={{
@@ -365,7 +509,20 @@ export default function Room({ channel }: RoomProps) {
 
             {/* positioned to match the Figma "Lamp string" frame (x=1168, y=7) */}
             <div style={{ position: "absolute", left: 1168, top: 7 }}>
-                <LampString theme={theme} onPull={() => setTheme((t) => (t === "dark" ? "light" : "dark"))} />
+                <LampString
+                    theme={theme}
+                    onPull={() => {
+                        setTheme((t) => {
+                            const next = t === "dark" ? "light" : "dark";
+                            channelRef.current?.send({
+                                type: "broadcast",
+                                event: "theme",
+                                payload: { theme: next },
+                            });
+                            return next;
+                        });
+                    }}
+                />
             </div>
 
             <button
@@ -375,7 +532,15 @@ export default function Room({ channel }: RoomProps) {
                 <img src="/Note.png" alt="Notes" style={{ width: "100%", height: "auto" }} />
             </button>
 
+            <button
+                onClick={() => setShareOpen(true)}
+                style={{ position: "absolute", right: 40, bottom: 40, width: 60, zIndex: 30 }}
+            >
+                <img src="/Message.png" alt="Share" style={{ width: "100%", height: "auto" }} />
+            </button>
+
             <Notes open={notesOpen} onClose={() => setNotesOpen(false)} theme={theme} />
+            <Share open={shareOpen} onClose={() => setShareOpen(false)} theme={theme} roomCode={roomCode} />
 
             <img
                 src={theme === "dark" ? "/statyk logo.png" : "/statyk logo light.png"}

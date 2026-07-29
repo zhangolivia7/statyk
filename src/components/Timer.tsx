@@ -7,6 +7,10 @@ interface TimerProps {
     pomodoroActive: boolean,
     durationMinutes: number,
     breakMinutes: number,
+    // wall-clock time the session actually began — lets a peer who joins (or
+    // reconnects) mid-session compute the true current phase/remaining time
+    // instead of restarting the countdown from the full duration
+    startedAt: number,
     onComplete: () => void,
     theme?: "dark" | "light",
 }
@@ -29,7 +33,7 @@ function formatCountdown(totalSeconds: number) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, onComplete, theme = "dark" }: TimerProps) {
+export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, startedAt, onComplete, theme = "dark" }: TimerProps) {
     const [now, setNow] = useState<Date | null>(null);
     const [phase, setPhase] = useState<"focus" | "break">("focus")
     const [focusCount, setFocusCount] = useState(0);
@@ -50,19 +54,53 @@ export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, o
     // background-tab timer throttling can't make the countdown drift — each
     // tick (and each tab focus event) just recomputes remaining time from
     // Date.now(), and the while loop below catches up on any phase changes
-    // that were missed while the tab was hidden
+    // that were missed while the tab was hidden (or, via startedAt, missed
+    // entirely because we joined a session already in progress)
     useEffect(() => {
         if (!pomodoroActive) return;
 
         let phase: "focus" | "break" = "focus";
         let focusCount = 0;
-        let phaseEnd = Date.now() + durationMinutes * 60 * 1000;
+        let phaseEnd = startedAt + durationMinutes * 60 * 1000;
         let stopped = false;
+
+        // silently fast-forward through any phase transitions that already
+        // happened between startedAt and now — this is what lets a peer who
+        // joins mid-session land on the correct phase/remaining time instead
+        // of restarting from the full duration
+        const initialNow = Date.now();
+        let caughtUp = false;
+        while (initialNow >= phaseEnd) {
+            caughtUp = true;
+            if (phase === "focus") {
+                focusCount += 1;
+                if (focusCount >= TOTAL_FOCUS_SESSIONS) {
+                    stopped = true;
+                    break;
+                }
+                phase = "break";
+                phaseEnd += breakMinutes * 60 * 1000;
+            } else {
+                phase = "focus";
+                phaseEnd += durationMinutes * 60 * 1000;
+            }
+        }
 
         setPhase(phase);
         setFocusCount(focusCount);
-        setSecondsRemaining(durationMinutes * 60);
-        playPomodoroSound("focus");
+        setSecondsRemaining(stopped ? 0 : Math.max(0, Math.ceil((phaseEnd - initialNow) / 1000)));
+
+        if (stopped) {
+            // the session had already fully finished by the time we started
+            // watching it (e.g. joining long after everyone else wrapped up)
+            playPomodoroSound("complete");
+            onComplete();
+            return;
+        }
+
+        // only chime for a phase we're genuinely present for the start of —
+        // catching up silently avoids replaying a stack of past transitions
+        if (!caughtUp) playPomodoroSound(phase);
 
         const tick = () => {
             if (stopped) return;
@@ -103,7 +141,7 @@ export default function Timer({ pomodoroActive, durationMinutes, breakMinutes, o
             clearInterval(id);
             document.removeEventListener("visibilitychange", tick);
         };
-    }, [pomodoroActive, durationMinutes, breakMinutes, onComplete]);
+    }, [pomodoroActive, durationMinutes, breakMinutes, startedAt, onComplete]);
 
     const housingFill = theme === "dark" ? "#0C0C0C" : "#F3EDE5";
     const housingStroke = theme === "dark" ? "#F3EDE5" : "#0C0C0C";
